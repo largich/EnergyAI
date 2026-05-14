@@ -1,0 +1,32 @@
+# .NET build artifacts
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.swp
+
+# NuGet
+*.nupkg
+packages/
+nuget.config
+
+# Node / frontend
+node_modules/
+dist/
+.parcel-cache/
+.vite/
+frontend/.env
+frontend/.env.local
+
+# Rider / VS Code / JetBrains
+.idea/
+*.DotSettings.user
+.vscode/
+
+# Aspire / Docker
+.docker/
+
+# OS
+.DS_Store
+Thumbs.db

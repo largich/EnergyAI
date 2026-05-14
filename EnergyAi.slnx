@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="EnergyAi.AppHost/EnergyAi.AppHost.csproj" />
+  <Project Path="EnergyAi.Server/EnergyAi.Server.csproj" />
+  <Project Path="frontend/frontend.esproj">
+    <Build />
+    <Deploy />
+  </Project>
+</Solution>
