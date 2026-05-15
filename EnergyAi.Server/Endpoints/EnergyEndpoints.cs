@@ -102,6 +102,22 @@ public static class EnergyEndpoints
             return Results.Ok(anomalies);
         }).WithName("GetAnomalies");
 
+        // ---- Heatmap ----
+
+        group.MapGet("/heatmap", async (
+            DateTime from, DateTime to,
+            string? equipment, string? classCode,
+            IHeatmapService svc, CancellationToken ct) =>
+        {
+            var data = await svc.GetHeatmapAsync(
+                DateTime.SpecifyKind(from, DateTimeKind.Utc),
+                DateTime.SpecifyKind(to,   DateTimeKind.Utc),
+                SplitCsv(equipment),
+                SplitCsv(classCode),
+                ct);
+            return Results.Ok(data);
+        }).WithName("GetHeatmap");
+
         // ---- Excel report ----
 
         group.MapGet("/reports/summary.xlsx", async (

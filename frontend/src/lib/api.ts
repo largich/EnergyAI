@@ -5,6 +5,7 @@ import type {
   ConsumptionSeries,
   Equipment,
   Granularity,
+  HeatmapSeries,
   Measurement,
 } from "./types";
 
@@ -46,6 +47,9 @@ export const api = {
 
   anomalies: (f: ConsumptionFilters & { zThreshold?: number; deviationThreshold?: number }) =>
     getJson<AnomalyPoint[]>(`${BASE}/anomalies${toQuery({ ...f })}`),
+
+  heatmap: (f: { from: string; to: string; equipment?: string; classCode?: string }) =>
+    getJson<HeatmapSeries[]>(`${BASE}/heatmap${toQuery({ ...f })}`),
 
   reportUrl: (f: ConsumptionFilters & { previousFrom?: string; previousTo?: string }) =>
     `${BASE}/reports/summary.xlsx${toQuery({ ...f })}`,

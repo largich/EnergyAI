@@ -58,3 +58,20 @@ export interface Measurement {
   name: string;
   unitSymbol: string;
 }
+
+export interface HeatmapCell {
+  dayOfWeek: number;  // 0 = Sunday … 6 = Saturday
+  hour: number;       // 0 – 23
+  avgQuantity: number;
+  sampleCount: number;
+}
+
+export interface HeatmapSeries {
+  equipmentCode: string;
+  classCode: string;
+  className: string;
+  measurementCode: string;
+  measurementName: string;
+  unitSymbol: string;
+  cells: HeatmapCell[];
+}

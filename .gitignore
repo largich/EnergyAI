@@ -1,3 +1,8 @@
+# Local secrets — never commit
+appsettings.Development.json
+appsettings.*.json
+!appsettings.json
+
 # .NET build artifacts
 bin/
 obj/

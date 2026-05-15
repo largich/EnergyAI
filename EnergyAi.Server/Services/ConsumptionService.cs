@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using EnergyAi.Server.Data;
 using EnergyAi.Server.Data.Entities;
 using EnergyAi.Server.Dtos;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace EnergyAi.Server.Services;
 
@@ -29,9 +31,16 @@ public class ConsumptionService : IConsumptionService
     // value zero corresponds to the week starting 1900-01-01.
     private static readonly DateTime s_weekEpoch = new(1900, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-    private readonly EnergyDbContext _db;
+    private static readonly TimeSpan SlowQueryThreshold = TimeSpan.FromSeconds(2);
 
-    public ConsumptionService(EnergyDbContext db) => _db = db;
+    private readonly EnergyDbContext                _db;
+    private readonly ILogger<ConsumptionService>    _logger;
+
+    public ConsumptionService(EnergyDbContext db, ILogger<ConsumptionService> logger)
+    {
+        _db     = db;
+        _logger = logger;
+    }
 
     // -------------------------------------------------------------------------
     // Public API
@@ -40,8 +49,15 @@ public class ConsumptionService : IConsumptionService
     public async Task<IReadOnlyList<ConsumptionSeries>> GetSeriesAsync(
         ConsumptionQuery q, CancellationToken ct = default)
     {
+        var sw      = Stopwatch.StartNew();
         var flat    = BuildFlatQuery(q);
         var buckets = await GroupBySqlAsync(flat, q.Granularity, ct);
+        sw.Stop();
+
+        if (sw.Elapsed > SlowQueryThreshold)
+            _logger.LogWarning("Slow consumption query. Granularity={Granularity} From={From} To={To} Elapsed={ElapsedMs}ms",
+                q.Granularity, q.FromUtc, q.ToUtc, sw.ElapsedMilliseconds);
+
         return BuildSeries(buckets, q.Granularity);
     }
 

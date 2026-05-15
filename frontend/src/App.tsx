@@ -9,8 +9,12 @@ import { FilterBar, type FilterState } from "./components/FilterBar";
 import { ConsumptionChart, type ChartType } from "./components/ConsumptionChart";
 import { ComparisonTable } from "./components/ComparisonTable";
 import { AnomalyList } from "./components/AnomalyList";
+import { HeatmapChart } from "./components/HeatmapChart";
+import ChatPage from "./pages/ChatPage";
+import type { HeatmapSeries } from "./lib/types";
 
-type Tab = "chart" | "comparison" | "anomalies";
+type Tab = "chart" | "comparison" | "anomalies" | "heatmap";
+type Page = "dashboard" | "chat";
 
 const CHART_TYPES: { value: ChartType; label: string }[] = [
   { value: "line", label: "Line" },
@@ -45,6 +49,7 @@ function toUtcIso(local: string): string {
 }
 
 export default function App() {
+  const [page, setPage] = useState<Page>("dashboard");
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
   const [tab, setTab] = useState<Tab>("chart");
   const [chartType, setChartType] = useState<ChartType>("line");
@@ -53,6 +58,7 @@ export default function App() {
   const [series, setSeries] = useState<ConsumptionSeries[]>([]);
   const [comparison, setComparison] = useState<ComparisonResult[]>([]);
   const [anomalies, setAnomalies] = useState<AnomalyPoint[]>([]);
+  const [heatmap, setHeatmap] = useState<HeatmapSeries[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,14 +86,16 @@ export default function App() {
     setLoading(true);
     setError(null);
     try {
-      const [s, c, a] = await Promise.all([
+      const [s, c, a, h] = await Promise.all([
         api.consumption(requestParams),
         api.compare(requestParams),
         api.anomalies(requestParams),
+        api.heatmap({ from: requestParams.from, to: requestParams.to, equipment: requestParams.equipment, classCode: requestParams.classCode }),
       ]);
       setSeries(s);
       setComparison(c);
       setAnomalies(a);
+      setHeatmap(h);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load data");
     } finally {
@@ -125,58 +133,49 @@ export default function App() {
           <h1 className="app-title">EnergyAI — Consumption Dashboard</h1>
           <p className="app-subtitle">Hourly / daily consumption, trends, and anomaly detection</p>
         </div>
+        <nav className="app-nav">
+          <button
+            className={`nav-btn ${page === "dashboard" ? "active" : ""}`}
+            onClick={() => setPage("dashboard")}
+            type="button"
+          >Dashboard</button>
+          <button
+            className={`nav-btn ${page === "chat" ? "active" : ""}`}
+            onClick={() => setPage("chat")}
+            type="button"
+          >AI Chat</button>
+        </nav>
       </header>
 
-      <main className="main-content">
-        <FilterBar value={filters} onChange={setFilters} />
+      {page === "chat" && <ChatPage />}
 
-        <section className="kpi-row">
-          <KpiCard label="Series" value={series.length.toString()} />
-          <KpiCard
-            label="Total consumption"
-            value={totalConsumption.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-            hint={series[0]?.unitSymbol ?? ""}
-          />
-          <KpiCard
-            label="Anomalies"
-            value={anomalies.length.toString()}
-            tone={highCount > 0 ? "alert" : undefined}
-            hint={highCount > 0 ? `${highCount} high severity` : ""}
-          />
-          <div className="kpi-card actions">
-            <button className="refresh-button" onClick={refresh} disabled={loading} type="button">
-              {loading ? "Loading..." : "Refresh"}
-            </button>
-            <a
-              className="refresh-button secondary"
-              href={api.reportUrl(requestParams)}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Export .xlsx
-            </a>
+      {page === "dashboard" && <main className="main-content">
+
+        {/* ── Left: chart area ── */}
+        <div className="dashboard-main">
+          {error && (
+            <div className="error-message" role="alert">
+              {error}
+            </div>
+          )}
+
+          <section className="card" aria-live="polite">
+          {/* Tab bar lives inside the card so it sits directly above the content */}
+          <div className="tabs card-tabs" role="tablist">
+            <TabBtn current={tab} value="chart" onClick={setTab}>
+              Time series
+            </TabBtn>
+            <TabBtn current={tab} value="comparison" onClick={setTab}>
+              Period comparison
+            </TabBtn>
+            <TabBtn current={tab} value="anomalies" onClick={setTab}>
+              Anomalies ({anomalies.length})
+            </TabBtn>
+            <TabBtn current={tab} value="heatmap" onClick={setTab}>
+              Heatmap
+            </TabBtn>
           </div>
-        </section>
 
-        {error && (
-          <div className="error-message" role="alert">
-            {error}
-          </div>
-        )}
-
-        <div className="tabs" role="tablist">
-          <TabBtn current={tab} value="chart" onClick={setTab}>
-            Time series
-          </TabBtn>
-          <TabBtn current={tab} value="comparison" onClick={setTab}>
-            Period comparison
-          </TabBtn>
-          <TabBtn current={tab} value="anomalies" onClick={setTab}>
-            Anomalies ({anomalies.length})
-          </TabBtn>
-        </div>
-
-        <section className="card" aria-live="polite">
           {tab === "chart" && (
             <>
               <div className="chart-toolbar">
@@ -220,8 +219,44 @@ export default function App() {
             </>
           )}
           {tab === "anomalies" && <AnomalyList data={anomalies} />}
+          {tab === "heatmap"   && <HeatmapChart data={heatmap} />}
         </section>
-      </main>
+        </div>{/* end .dashboard-main */}
+
+        {/* ── Right: filters + KPIs ── */}
+        <aside className="dashboard-sidebar">
+          <FilterBar value={filters} onChange={setFilters} />
+
+          <section className="kpi-row">
+            <KpiCard label="Series" value={series.length.toString()} />
+            <KpiCard
+              label="Total consumption"
+              value={totalConsumption.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              hint={series[0]?.unitSymbol ?? ""}
+            />
+            <KpiCard
+              label="Anomalies"
+              value={anomalies.length.toString()}
+              tone={highCount > 0 ? "alert" : undefined}
+              hint={highCount > 0 ? `${highCount} high severity` : ""}
+            />
+            <div className="kpi-card actions">
+              <button className="refresh-button" onClick={refresh} disabled={loading} type="button">
+                {loading ? "Loading..." : "Refresh"}
+              </button>
+              <a
+                className="refresh-button secondary"
+                href={api.reportUrl(requestParams)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Export .xlsx
+              </a>
+            </div>
+          </section>
+        </aside>
+
+      </main>}
 
       <footer className="app-footer">
         <span className="muted small">EnergyAI · powered by .NET Aspire + React</span>
