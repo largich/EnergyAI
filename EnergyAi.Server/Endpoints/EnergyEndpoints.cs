@@ -46,11 +46,29 @@ public static class EnergyEndpoints
             return Results.Ok(measurements);
         }).WithName("GetMeasurements");
 
+        group.MapGet("/transfercodes", async (EnergyDbContext db, string? classCode, CancellationToken ct) =>
+        {
+            // Returns transfer codes that actually appear in counter_value, optionally
+            // scoped to a class. This keeps the dropdown relevant to the current data.
+            var classCodes = SplitCsv(classCode);
+
+            var codes = await db.CounterValues
+                .AsNoTracking()
+                .Where(cv => classCodes == null || classCodes.Contains(cv.TransferClassCode.Code))
+                .Select(cv => new { cv.TransferCode.Code, cv.TransferCode.Name })
+                .Distinct()
+                .OrderBy(t => t.Code)
+                .Select(t => new TransferCodeDto(t.Code, t.Name))
+                .ToListAsync(ct);
+
+            return Results.Ok(codes);
+        }).WithName("GetTransferCodes");
+
         // ---- Time series ----
 
         group.MapGet("/consumption", async (
             DateTime from, DateTime to, Granularity granularity,
-            string? equipment, string? classCode,
+            string? equipment, string? classCode, string? transferCode,
             IConsumptionService svc, CancellationToken ct) =>
         {
             var q = new ConsumptionQuery(
@@ -58,7 +76,8 @@ public static class EnergyEndpoints
                 ToUtc: DateTime.SpecifyKind(to, DateTimeKind.Utc),
                 Granularity: granularity,
                 EquipmentCodes: SplitCsv(equipment),
-                ClassCodes: SplitCsv(classCode));
+                ClassCodes: SplitCsv(classCode),
+                TransferCodes: SplitCsv(transferCode));
             var data = await svc.GetSeriesAsync(q, ct);
             return Results.Ok(data);
         }).WithName("GetConsumption");
@@ -67,7 +86,7 @@ public static class EnergyEndpoints
             DateTime from, DateTime to,
             DateTime previousFrom, DateTime previousTo,
             Granularity granularity,
-            string? equipment, string? classCode,
+            string? equipment, string? classCode, string? transferCode,
             IConsumptionService svc, CancellationToken ct) =>
         {
             var q = new ConsumptionQuery(
@@ -75,7 +94,8 @@ public static class EnergyEndpoints
                 ToUtc: DateTime.SpecifyKind(to, DateTimeKind.Utc),
                 Granularity: granularity,
                 EquipmentCodes: SplitCsv(equipment),
-                ClassCodes: SplitCsv(classCode));
+                ClassCodes: SplitCsv(classCode),
+                TransferCodes: SplitCsv(transferCode));
             var data = await svc.ComparePeriodsAsync(q,
                 DateTime.SpecifyKind(previousFrom, DateTimeKind.Utc),
                 DateTime.SpecifyKind(previousTo, DateTimeKind.Utc), ct);
@@ -86,7 +106,7 @@ public static class EnergyEndpoints
 
         group.MapGet("/anomalies", async (
             DateTime from, DateTime to, Granularity granularity,
-            string? equipment, string? classCode,
+            string? equipment, string? classCode, string? transferCode,
             double? zThreshold, double? deviationThreshold,
             IAnomalyService svc, CancellationToken ct) =>
         {
@@ -95,7 +115,8 @@ public static class EnergyEndpoints
                 ToUtc: DateTime.SpecifyKind(to, DateTimeKind.Utc),
                 Granularity: granularity,
                 EquipmentCodes: SplitCsv(equipment),
-                ClassCodes: SplitCsv(classCode));
+                ClassCodes: SplitCsv(classCode),
+                TransferCodes: SplitCsv(transferCode));
             var anomalies = await svc.DetectAsync(q,
                 zThreshold ?? 2.5,
                 deviationThreshold ?? 30.0, ct);
@@ -106,7 +127,7 @@ public static class EnergyEndpoints
 
         group.MapGet("/heatmap", async (
             DateTime from, DateTime to,
-            string? equipment, string? classCode,
+            string? equipment, string? classCode, string? transferCode,
             IHeatmapService svc, CancellationToken ct) =>
         {
             var data = await svc.GetHeatmapAsync(
@@ -114,6 +135,7 @@ public static class EnergyEndpoints
                 DateTime.SpecifyKind(to,   DateTimeKind.Utc),
                 SplitCsv(equipment),
                 SplitCsv(classCode),
+                SplitCsv(transferCode),
                 ct);
             return Results.Ok(data);
         }).WithName("GetHeatmap");
@@ -122,7 +144,7 @@ public static class EnergyEndpoints
 
         group.MapGet("/reports/summary.xlsx", async (
             DateTime from, DateTime to, Granularity granularity,
-            string? equipment, string? classCode,
+            string? equipment, string? classCode, string? transferCode,
             DateTime? previousFrom, DateTime? previousTo,
             IConsumptionService consumption, IAnomalyService anomalies, IReportService reports,
             CancellationToken ct) =>
@@ -132,7 +154,8 @@ public static class EnergyEndpoints
                 ToUtc: DateTime.SpecifyKind(to, DateTimeKind.Utc),
                 Granularity: granularity,
                 EquipmentCodes: SplitCsv(equipment),
-                ClassCodes: SplitCsv(classCode));
+                ClassCodes: SplitCsv(classCode),
+                TransferCodes: SplitCsv(transferCode));
 
             var series = await consumption.GetSeriesAsync(q, ct);
             var anoms = await anomalies.DetectAsync(q, ct: ct);

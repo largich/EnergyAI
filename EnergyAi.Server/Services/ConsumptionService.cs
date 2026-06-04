@@ -122,6 +122,9 @@ public class ConsumptionService : IConsumptionService
         if (q.ClassCodes is { Length: > 0 })
             query = query.Where(cv => q.ClassCodes.Contains(cv.TransferClassCode.Code));
 
+        if (q.TransferCodes is { Length: > 0 })
+            query = query.Where(cv => q.TransferCodes.Contains(cv.TransferCode.Code));
+
         return query.Select(cv => new Row
         {
             EquipmentCode   = cv.EquipmentCode,

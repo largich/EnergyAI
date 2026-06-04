@@ -7,6 +7,7 @@ import type {
   Granularity,
   HeatmapSeries,
   Measurement,
+  TransferCode,
 } from "./types";
 
 const BASE = "/api/energy";
@@ -30,14 +31,17 @@ export interface ConsumptionFilters {
   from: string; // ISO
   to: string;   // ISO
   granularity: Granularity;
-  equipment?: string;  // CSV
-  classCode?: string;  // CSV
+  equipment?: string;    // CSV
+  classCode?: string;    // CSV
+  transferCode?: string; // single code
 }
 
 export const api = {
   classes: () => getJson<ClassCode[]>(`${BASE}/classes`),
   equipment: () => getJson<Equipment[]>(`${BASE}/equipment`),
   measurements: () => getJson<Measurement[]>(`${BASE}/measurements`),
+  transferCodes: (classCode?: string) =>
+    getJson<TransferCode[]>(`${BASE}/transfercodes${toQuery({ classCode })}`),
 
   consumption: (f: ConsumptionFilters) =>
     getJson<ConsumptionSeries[]>(`${BASE}/consumption${toQuery({ ...f })}`),
@@ -48,7 +52,7 @@ export const api = {
   anomalies: (f: ConsumptionFilters & { zThreshold?: number; deviationThreshold?: number }) =>
     getJson<AnomalyPoint[]>(`${BASE}/anomalies${toQuery({ ...f })}`),
 
-  heatmap: (f: { from: string; to: string; equipment?: string; classCode?: string }) =>
+  heatmap: (f: { from: string; to: string; equipment?: string; classCode?: string; transferCode?: string }) =>
     getJson<HeatmapSeries[]>(`${BASE}/heatmap${toQuery({ ...f })}`),
 
   reportUrl: (f: ConsumptionFilters & { previousFrom?: string; previousTo?: string }) =>

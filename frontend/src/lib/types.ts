@@ -53,6 +53,11 @@ export interface Equipment {
   code: string;
 }
 
+export interface TransferCode {
+  code: string;
+  name: string | null;
+}
+
 export interface Measurement {
   code: string;
   name: string;

@@ -12,9 +12,10 @@ public interface IHeatmapService
     Task<IReadOnlyList<HeatmapSeries>> GetHeatmapAsync(
         DateTime fromUtc,
         DateTime toUtc,
-        string[]? equipmentCodes = null,
-        string[]? classCodes     = null,
-        CancellationToken ct     = default);
+        string[]? equipmentCodes  = null,
+        string[]? classCodes      = null,
+        string[]? transferCodes   = null,
+        CancellationToken ct      = default);
 }
 
 /// <summary>
@@ -43,12 +44,13 @@ public class HeatmapService : IHeatmapService
     public async Task<IReadOnlyList<HeatmapSeries>> GetHeatmapAsync(
         DateTime fromUtc,
         DateTime toUtc,
-        string[]? equipmentCodes = null,
-        string[]? classCodes     = null,
-        CancellationToken ct     = default)
+        string[]? equipmentCodes  = null,
+        string[]? classCodes      = null,
+        string[]? transferCodes   = null,
+        CancellationToken ct      = default)
     {
         var sw   = Stopwatch.StartNew();
-        var flat = BuildFlatQuery(fromUtc, toUtc, equipmentCodes, classCodes);
+        var flat = BuildFlatQuery(fromUtc, toUtc, equipmentCodes, classCodes, transferCodes);
 
         var grouped = await flat
             .GroupBy(r => new
@@ -102,7 +104,7 @@ public class HeatmapService : IHeatmapService
 
     private IQueryable<Row> BuildFlatQuery(
         DateTime fromUtc, DateTime toUtc,
-        string[]? equipmentCodes, string[]? classCodes)
+        string[]? equipmentCodes, string[]? classCodes, string[]? transferCodes)
     {
         IQueryable<CounterValue> query = _db.CounterValues
             .AsNoTracking()
@@ -114,6 +116,9 @@ public class HeatmapService : IHeatmapService
 
         if (classCodes is { Length: > 0 })
             query = query.Where(cv => classCodes.Contains(cv.TransferClassCode.Code));
+
+        if (transferCodes is { Length: > 0 })
+            query = query.Where(cv => transferCodes.Contains(cv.TransferCode.Code));
 
         return query.Select(cv => new Row
         {

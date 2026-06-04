@@ -32,7 +32,8 @@ public record ConsumptionQuery(
     DateTime ToUtc,
     Granularity Granularity,
     string[]? EquipmentCodes,
-    string[]? ClassCodes
+    string[]? ClassCodes,
+    string[]? TransferCodes = null
 );
 
 public record ComparisonResult(

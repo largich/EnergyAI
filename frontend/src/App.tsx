@@ -34,6 +34,7 @@ function defaultFilters(): FilterState {
     granularity: "Day",
     classCode: "",
     equipment: "",
+    transferCode: "",
   };
 }
 
@@ -79,6 +80,7 @@ export default function App() {
       granularity: filters.granularity,
       equipment: filters.equipment || undefined,
       classCode: filters.classCode || undefined,
+      transferCode: filters.transferCode || undefined,
     };
   }, [filters]);
 
@@ -90,7 +92,7 @@ export default function App() {
         api.consumption(requestParams),
         api.compare(requestParams),
         api.anomalies(requestParams),
-        api.heatmap({ from: requestParams.from, to: requestParams.to, equipment: requestParams.equipment, classCode: requestParams.classCode }),
+        api.heatmap({ from: requestParams.from, to: requestParams.to, equipment: requestParams.equipment, classCode: requestParams.classCode, transferCode: requestParams.transferCode }),
       ]);
       setSeries(s);
       setComparison(c);
