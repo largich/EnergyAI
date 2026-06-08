@@ -87,7 +87,7 @@ try
         var chatClient = sp.GetRequiredService<IChatClient>();
         var plugin     = sp.GetRequiredService<EnergyPlugin>();
         var logger     = sp.GetRequiredService<ILogger<AgentService>>();
-        return new AgentService(chatClient, plugin, logger);
+        return new AgentService(chatClient, plugin, logger, anthropicModel);
     });
 
     // ---- App ----

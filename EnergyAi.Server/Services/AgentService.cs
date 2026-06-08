@@ -34,12 +34,14 @@ public class AgentService : IAgentService
     private readonly IChatClient            _chatClient;
     private readonly EnergyPlugin           _plugin;
     private readonly ILogger<AgentService>  _logger;
+    private readonly string                 _modelId;
 
-    public AgentService(IChatClient chatClient, EnergyPlugin plugin, ILogger<AgentService> logger)
+    public AgentService(IChatClient chatClient, EnergyPlugin plugin, ILogger<AgentService> logger, string modelId)
     {
         _chatClient = chatClient;
         _plugin     = plugin;
         _logger     = logger;
+        _modelId    = modelId;
     }
 
     public async IAsyncEnumerable<string> StreamAsync(
@@ -54,6 +56,7 @@ public class AgentService : IAgentService
 
         var options = new ChatOptions
         {
+            ModelId         = _modelId,
             MaxOutputTokens = 4096,
             Tools           = [.. _plugin.CreateTools()]
         };
